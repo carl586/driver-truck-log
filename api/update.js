@@ -1,87 +1,72 @@
 import { neon } from '@neondatabase/serverless';
 
 export default async function handler(req, res) {
-  // Allow your GitHub Pages site to call this API
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
     const data = req.body;
-
     if (!data || !data.status) {
       return res.status(400).json({ error: 'Missing status' });
     }
 
     const sql = neon(process.env.DATABASE_URL);
 
-    // Save to Neon
-    await sql`
-      INSERT INTO updates (
-        id, status, is_truck,
-        driver_name, phone, company_name, truck_number,
-        truck_owner, owner_phone, previous_company, previous_truck,
-        codriver_name, codriver_phone,
-        vin, state, plate, year,
-        effective_date, notes, created_at, synced
-      ) VALUES (
-        ${data.id},
-        ${data.status},
-        ${data.isTruck || false},
-        ${data.driverName || null},
-        ${data.phone || null},
-        ${data.companyName || null},
-        ${data.truckNumber || null},
-        ${data.truckOwner || null},
-        ${data.ownerPhone || null},
-        ${data.previousCompany || null},
-        ${data.previousTruck || null},
-        ${data.codriverName || null},
-        ${data.codriverPhone || null},
-        ${data.vin || null},
-        ${data.state || null},
-        ${data.plate || null},
-        ${data.year || null},
-        ${data.effectiveDate || null},
-        ${data.notes || null},
-        ${data.createdAt || Date.now()},
-        true
-      )
-    `;
+    // Run database + Telegram at the same time
+    const [_, tgResult] = await Promise.all([
+      // 1. Save to Neon
+      sql`
+        INSERT INTO updates (
+          id, status, is_truck,
+          driver_name, phone, company_name, truck_number,
+          truck_owner, owner_phone, previous_company, previous_truck,
+          codriver_name, codriver_phone,
+          vin, state, plate, year,
+          effective_date, notes, created_at, synced
+        ) VALUES (
+          ${data.id},
+          ${data.status},
+          ${data.isTruck || false},
+          ${data.driverName || null},
+          ${data.phone || null},
+          ${data.companyName || null},
+          ${data.truckNumber || null},
+          ${data.truckOwner || null},
+          ${data.ownerPhone || null},
+          ${data.previousCompany || null},
+          ${data.previousTruck || null},
+          ${data.codriverName || null},
+          ${data.codriverPhone || null},
+          ${data.vin || null},
+          ${data.state || null},
+          ${data.plate || null},
+          ${data.year || null},
+          ${data.effectiveDate || null},
+          ${data.notes || null},
+          ${data.createdAt || Date.now()},
+          true
+        )
+      `,
 
-    // Build Telegram message
-    const text = buildTelegramMessage(data);
-
-    // Send to Telegram
-    const tgRes = await fetch(
-      `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`,
-      {
+      // 2. Send to Telegram
+      fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           chat_id: process.env.TELEGRAM_CHAT_ID,
-          text,
+          text: buildTelegramMessage(data),
           parse_mode: 'HTML'
         })
-      }
-    );
+      }).then(r => r.json())
+    ]);
 
-    const tgData = await tgRes.json();
-
-    if (!tgData.ok) {
-      console.error('Telegram error:', tgData);
-      return res.status(500).json({
-        error: 'Saved to database but Telegram failed',
-        details: tgData.description
-      });
+    if (!tgResult.ok) {
+      console.error('Telegram error:', tgResult);
+      // Still return success because data is saved
     }
 
     return res.status(200).json({ ok: true });
@@ -127,6 +112,5 @@ function buildTelegramMessage(e) {
   }
 
   if (e.notes) lines.push(`<b>notes</b>  ${e.notes}`);
-
   return lines.join('\n');
 }
