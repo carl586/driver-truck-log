@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Driver & Truck Log</title>
+<style>
+  :root{
+    --bg: #ffffff;
+    --line: #e7e9ec;
+    --line-soft: #f0f1f3;
+    --text: #14171a;
+    --text-dim: #6b7280;
+    --text-faint: #9aa1a9;
+    --row-hover: #fafafa;
+    --header-bg: #f9fafb;
+
+    --red: #b91c1c;   --red-bg: #fdecec;   --red-bd: #f8d3d3;
+    --green: #15803d; --green-bg: #e8f7ee; --green-bd: #cdeeda;
+    --amber: #b45309; --amber-bg: #fef3e0; --amber-bd: #f7dfa8;
+    --blue: #1d4ed8;  --blue-bg: #eaf0fe;  --blue-bd: #d3e0fc;
+    --purple: #6d28d9; --purple-bg: #f3eefc; --purple-bd: #e0d4f7;
+    --teal: #0f766e;  --teal-bg: #e6f7f5;  --teal-bd: #b8eae4;
+    --orange: #c2410c; --orange-bg: #fff0e8; --orange-bd: #fdd5bf;
+    --indigo: #4338ca; --indigo-bg: #eef0ff; --indigo-bd: #d4d8fc;
+
+    --mono: 'SF Mono', 'JetBrains Mono', 'Courier New', monospace;
+    --sans: -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  }
+  *{ box-sizing:border-box; }
+  html,body{
+    margin:0; padding:0; background:var(--bg); color:var(--text);
+    font-family: var(--sans); min-height:100vh; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{ max-width: 1120px; margin:0 auto; padding: 28px 24px 60px; }
+
+  .top{
+    display:flex; justify-content:space-between; align-items:flex-start;
+    flex-wrap: wrap; gap: 16px; margin-bottom: 18px;
+  }
+  .top h1{ font-size: 1.35rem; font-weight: 700; margin: 0 0 4px; letter-spacing:-0.01em; }
+  .top .sub{ font-size: 0.82rem; color: var(--text-dim); }
+
+  .controls{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .search-input{
+    background:#fff; border:1px solid var(--line); border-radius:8px;
+    padding: 9px 12px; font-size:0.85rem; color:var(--text); min-width: 200px;
+  }
+  .search-input:focus{ outline:none; border-color:#b7bcc3; }
+  select.filter-select{
+    background:#fff; border:1px solid var(--line); border-radius:8px;
+    padding: 9px 12px; font-size:0.85rem; color:var(--text); cursor:pointer;
+    min-width: 180px;
+  }
+
+  .form-card{
+    border:1px solid var(--line); border-radius:12px; padding:20px;
+    margin-bottom:18px; background:#fff;
+  }
+  .form-card h2{
+    font-size:0.95rem; font-weight:700; margin:0 0 14px; color:var(--text);
+  }
+  .form-group{ margin-bottom:12px; }
+  .form-group label{
+    display:block; font-size:0.75rem; color:var(--text-dim); margin-bottom:5px;
+  }
+  .form-group label .opt{ color:var(--text-faint); font-weight:400; }
+  .form-group input[type=text],
+  .form-group input[type=tel],
+  .form-group input[type=date],
+  .form-group select{
+    width:100%; background:#fff; border:1px solid var(--line); color:var(--text);
+    padding:9px 12px; border-radius:8px; font-size:0.86rem; font-family:var(--sans);
+  }
+  .form-group input.mono{ font-family:var(--mono); }
+  .form-group input:focus, .form-group select:focus{
+    outline:none; border-color:#b7bcc3;
+  }
+
+  .form-row{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .form-row.three{ grid-template-columns:1fr 1fr 1fr; }
+
+  .status-select-wrap{ margin-bottom:16px; }
+  .status-select-wrap select{
+    width:100%; max-width:340px; background:#fff; border:1px solid var(--line);
+    color:var(--text); padding:10px 12px; border-radius:8px; font-size:0.9rem;
+    font-weight:600; cursor:pointer;
+  }
+
+  .fields-panel{ display:none; }
+  .fields-panel.active{ display:block; }
+
+  .company-wrap{ display:flex; gap:8px; align-items:flex-end; }
+  .company-wrap select{ flex:1; }
+  .btn-add-company{
+    background:#fff; border:1px solid var(--line); color:var(--text);
+    padding:9px 12px; border-radius:8px; font-size:0.8rem; cursor:pointer;
+    white-space:nowrap; height:38px;
+  }
+  .btn-add-company:hover{ background:#fafafa; }
+
+  .companies-link{
+    font-size:0.78rem; color:var(--text-faint); cursor:pointer; text-decoration:underline;
+    margin-left:12px; font-weight:400;
+  }
+  .companies-panel{
+    display:none; margin-top:14px; padding-top:14px; border-top:1px dashed var(--line);
+  }
+  .companies-panel.open{ display:block; }
+  .companies-list{ list-style:none; padding:0; margin:0 0 10px; }
+  .companies-list li{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:8px 10px; border:1px solid var(--line-soft); border-radius:6px;
+    margin-bottom:6px; font-size:0.85rem;
+  }
+  .companies-list li .del{
+    background:none; border:none; color:var(--text-faint); cursor:pointer; font-size:1rem;
+  }
+  .companies-list li .del:hover{ color:var(--red); }
+  .companies-empty{ font-size:0.82rem; color:var(--text-dim); margin-bottom:10px; }
+  .add-company-inline{
+    display:flex; gap:8px; align-items:center; margin-top:4px;
+  }
+  .add-company-inline input{ flex:1; }
+  .btn-save-company{
+    background:#14171a; color:#fff; border:none; border-radius:8px;
+    padding:9px 14px; font-size:0.8rem; font-weight:600; cursor:pointer;
+  }
+
+  .form-actions{
+    display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:8px;
+  }
+  .btn-submit{
+    background:#14171a; color:#fff; border:none; border-radius:8px;
+    padding:10px 20px; font-size:0.86rem; font-weight:700; cursor:pointer;
+  }
+  .btn-submit:hover{ background:#000; }
+  .btn-submit:disabled{ opacity:0.5; cursor:not-allowed; }
+  .btn-clear{
+    background:#fff; border:1px solid var(--line); color:var(--text);
+    padding:10px 16px; border-radius:8px; font-size:0.86rem; cursor:pointer;
+  }
+  .btn-clear:hover{ background:#fafafa; }
+
+  .msg{ font-size:0.8rem; padding:9px 11px; border-radius:8px; display:none; }
+  .msg.show{ display:block; }
+  .msg.ok{ background:var(--green-bg); color:var(--green); border:1px solid var(--green-bd); }
+  .msg.err{ background:var(--red-bg); color:var(--red); border:1px solid var(--red-bd); }
+
+  .table-card{ border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+  table{ width:100%; border-collapse:collapse; }
+  thead th{
+    background: var(--header-bg); text-align:left; font-size:0.68rem;
+    text-transform:uppercase; letter-spacing:0.05em; color:var(--text-faint);
+    font-weight:700; padding: 11px 16px; border-bottom:1px solid var(--line);
+    white-space:nowrap;
+  }
+  tbody td{
+    padding: 14px 16px; border-bottom:1px solid var(--line-soft);
+    font-size:0.86rem; vertical-align: top;
+  }
+  tbody tr:last-child td{ border-bottom:none; }
+  tbody tr:hover{ background: var(--row-hover); }
+  td.idx{ color: var(--text-faint); font-size:0.8rem; width:36px; }
+
+  .driver-cell .driver-line{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .driver-name{ font-weight:700; color:var(--text); }
+  .driver-sub{ color: var(--text-dim); font-size:0.8rem; margin-top:3px; line-height:1.45; max-width: 420px; }
+
+  .badge{
+    display:inline-block; font-size:0.66rem; font-weight:700; letter-spacing:0.03em;
+    text-transform:uppercase; padding: 3px 8px; border-radius:5px; border:1px solid transparent;
+    white-space:nowrap;
+  }
+  .badge.left{ color:var(--red); background:var(--red-bg); border-color:var(--red-bd); }
+  .badge.joined{ color:var(--green); background:var(--green-bg); border-color:var(--green-bd); }
+  .badge.switched{ color:var(--amber); background:var(--amber-bg); border-color:var(--amber-bd); }
+  .badge.returned{ color:var(--blue); background:var(--blue-bg); border-color:var(--blue-bd); }
+  .badge.newtruck{ color:var(--teal); background:var(--teal-bg); border-color:var(--teal-bd); }
+  .badge.switchedtruck{ color:var(--purple); background:var(--purple-bg); border-color:var(--purple-bd); }
+  .badge.lefttruck{ color:var(--orange); background:var(--orange-bg); border-color:var(--orange-bd); }
+  .badge.returnedtruck{ color:var(--indigo); background:var(--indigo-bg); border-color:var(--indigo-bd); }
+
+  td.truck{ font-family: var(--mono); color:var(--text); font-size:0.82rem; }
+  td.company{ color:var(--text); }
+  td.date{ color:var(--text); white-space:nowrap; }
+  td.status-text{ color:var(--text-dim); white-space:nowrap; }
+
+  .del-btn{
+    background:none; border:none; color:var(--text-faint); cursor:pointer; font-size:1rem;
+    padding:4px 6px; line-height:1;
+  }
+  .del-btn:hover{ color:var(--red); }
+
+  .empty-row td{ text-align:center; color:var(--text-dim); padding: 40px 16px; }
+
+  @media (max-width: 720px){
+    .form-row, .form-row.three{ grid-template-columns:1fr; }
+    .company-wrap{ flex-direction:column; align-items:stretch; }
+    thead{ display:none; }
+    table, tbody, tr, td{ display:block; width:100%; }
+    tbody tr{ border-bottom:1px solid var(--line); padding: 12px 4px; }
+    tbody td{ border:none; padding: 3px 12px; }
+    td.idx{ display:none; }
+    td.truck, td.company, td.date, td.status-text{
+      display:inline-block; margin-right:10px; font-size:0.78rem; color:var(--text-dim);
+    }
+    td.truck::before{ content:"Truck: "; color:var(--text-faint); }
+    td.company::before{ content:"Company: "; color:var(--text-faint); }
+    .del-btn{ float:right; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="top">
+    <div>
+      <h1>Driver &amp; Truck Log</h1>
+      <div class="sub" id="subCounts">0 updates</div>
+    </div>
+    <div class="controls">
+      <input type="text" class="search-input" id="searchInput" placeholder="Search driver, truck, VIN, plate...">
+      <select class="filter-select" id="filterSelect">
+        <option value="all">All statuses</option>
+        <optgroup label="Driver">
+          <option value="joined">Joined Company</option>
+          <option value="switched">Switched Company</option>
+          <option value="left">Left Company</option>
+          <option value="returned">Returned</option>
+        </optgroup>
+        <optgroup label="Truck">
+          <option value="newtruck">New Truck</option>
+          <option value="switchedtruck">Switched Truck</option>
+          <option value="lefttruck">Left Truck</option>
+          <option value="returnedtruck">Returned Truck</option>
+        </optgroup>
+      </select>
+    </div>
+  </div>
+
+  <div class="form-card">
+    <h2>
+      Add update
+      <span class="companies-link" id="companiesToggle">Manage companies</span>
+    </h2>
+
+    <div class="companies-panel" id="companiesPanel">
+      <div class="companies-empty" id="companiesEmpty">No companies saved yet.</div>
+      <ul class="companies-list" id="companiesList"></ul>
+      <div class="add-company-inline">
+        <input type="text" id="newCompanyInput" placeholder="New company name">
+        <button class="btn-save-company" id="saveCompanyBtn">Add company</button>
+      </div>
+      <div class="msg" id="companiesMsg" style="margin-top:10px;"></div>
+    </div>
+
+    <div class="status-select-wrap form-group">
+      <label for="statusSelect">Status</label>
+      <select id="statusSelect">
+        <option value="">— Select status —</option>
+        <optgroup label="Driver">
+          <option value="joined">Joined Company (New driver)</option>
+          <option value="switched">Switched Company</option>
+          <option value="left">Left Company</option>
+          <option value="returned">Returned</option>
+        </optgroup>
+        <optgroup label="Truck">
+          <option value="newtruck">New Truck</option>
+          <option value="switchedtruck">Switched Truck</option>
+          <option value="lefttruck">Left Truck</option>
+          <option value="returnedtruck">Returned Truck</option>
+        </optgroup>
+      </select>
+    </div>
+
+    <!-- JOINED -->
+    <div class="fields-panel" id="fields-joined">
+      <div class="form-row three">
+        <div class="form-group">
+          <label for="j_driverName">Driver name</label>
+          <input type="text" id="j_driverName" placeholder="">
+        </div>
+        <div class="form-group">
+          <label for="j_phone">Phone number</label>
+          <input type="tel" id="j_phone" placeholder="">
+        </div>
+        <div class="form-group">
+          <label>Company</label>
+          <div class="company-wrap">
+            <select id="j_company" class="company-select">
+              <option value="">— Select company —</option>
+            </select>
+            <button type="button" class="btn-add-company" data-target="j_company">+ Add</button>
+          </div>
+        </div>
+      </div>
+      <div class="form-row three">
+        <div class="form-group">
+          <label for="j_truck">Truck number</label>
+          <input type="text" id="j_truck" class="mono" placeholder="">
+        </div>
+        <div class="form-group">
+          <label for="j_owner">Truck owner</label>
+          <input type="text" id="j_owner" placeholder="">
+        </div>
+        <div class="form-group">
+          <label for="j_ownerPhone">Owner phone number</label>
+          <input type="tel" id="j_ownerPhone" placeholder="">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="j_date">Date</label>
+          <input type="date" id="j_date">
+        </div>
+        <div class="form-group">
+          <label for="j_notes">Notes <span class="opt">(optional)</span></label>
+          <input type="text" id="j_notes" placeholder="">
+        </div>
+      </div>
+    </div>
+
+    <!-- SWITCHED -->
+    <div class="fields-panel" id="fields-switched">
+      <div class="form-row three">
+        <div class="form-group">
+          <label for="s_driverName">Driver name</label>
+          <input type="text" id="s_driverName" placeholder="">
+        </div>
+        <div class="form-group">
+          <label for="s_phone">Phone number</label>
+          <input type="tel" id="s_phone" placeholder="">
+        </div>
+        <div class="form-group">
+          <label>Previous company <span class="opt">(optional)</span></label>
+          <div class="company-wrap">
+            <select id="s_prevCompany" class="company-select">
+              <option value="">— Select company —</option>
+            </select>
+            <button type="button" class="btn-add-company" data-target="s_prevCompany">+ Add</button>
+          </div>
+        </div>
+      </div>
+      <div class="form-row three">
+        <div class="form-group">
+          <label for="s_prevTruck">Previous truck <span class="opt">(optional)</span></label>
+          <input type="text" id="s_prevTruck" class="mono" placeholder="">
+        </div>
+        <div class="form-group">
+          <label>New company</label>
+          <div class="company-wrap">
+            <select id="s_company" class="company-select">
+              <option value="">— Select company —</option>
+            </select>
+            <button type="button" class="btn-add-company" data-target="s_company">+ Add</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="s_truck">Truck number</label>
+          <input type="text" id="s_truck" class="mono" placeholder="">
+        </div>
+      </div>
+      <div class="form-row three">
+        <div class="form-group">
+          <label for="s_owner">Truck owner</label>
+          <input type="text" id="s_owner" placeholder="">
+        </div>
+        <div class="form-group">
+          <label for="s_ownerPhone">Owner phone number</label>
+          <input type="tel" id="s_ownerPhone" placeholder="">
+        </div>
+        <div class="form-group">
+          <label for="s_codriver">Co-driver name <span class="opt">(optional)</span></label>
+          <input type="text" id="s_codriver" placeholder="">
+        </div>
+      </div>
+      <div class="form-row three">
+        <div class="form-group">
+          <label for="s_codriverPhone">Co-driver phone number <span class="opt">(optional)</span></label>
+          <input type="tel" id="s_codriverPhone" placeholder="">
+        </div>
+        <div class="form-group">
+          <label for="s_date">Date</label>
+          <input type="date" id="s_date">
+        </div>
+        <div class="form-group">
+          <label for="s_notes">Notes <span class="opt">(optional)</span></label>
+          <input type="text" id="s_notes" placeholder="">
+        </div>
+      </div>
+    </div>
+
+    <!-- LEFT -->
+    <div class="fields-panel" id="fields-left">
+      <div class="form-row three">
+        <div class="form-group">
+          <label for="l_driverName">Driver name</label>
+          <input type="text" id="l_driverName" placeholder="">
+        </div>
+        <div class="form-group">
+          <label for="l_phone">Phone number</label>
+          <input type="tel" id="l_phone" placeholder="">
+        </div>
+        <div class="form-group">
+          <label>Company</label>
+          <div class="company-wrap">
+            <select id="l_company" class="company-select">
+              <option value="">— Select company —</option>
+            </select>
+            <button type="button" class="btn-add-company" data-target="l_company">+ Add</button>
+          </div>
+        </div>
+      </div>
+      <div class="form-row three">
+        <div class="form-group">
+          <label for="l_truck">Truck number <span class="opt">(optional)</span></label>
+          <input type="text" id="l_truck" class="mono" placeholder="">
+        </div>
+        <div class="form-group">
+          <label for="l_date">Date</label>
+          <input type="date" id="l_date">
+        </div>
+        <div class="form-group">
+          <label for="l_notes">Notes / reason <span class="opt">(optional)</span></label>
+          <input type="text" id="l_notes" placeholder="">
+        </div>
+      </div>
+    </div>
+
+    <!-- RETURNED -->
+    <div class="fields-panel" id="fields-returned">
+      <div class="form-row three">
+        <div class="form-group">
+          <label for="r_driverName">Driver name</label>
+          <input type="text" id="r_driverName" placeholder="">
+        </div>
+        <div class="form-group">
+          <label for="r_phone">Phone number</label>
+          <input type="tel" id="r_phone" placeholder="">
+        </div>
+        <div class="form-group">
+          <label>Company</label>
+          <div class="company-wrap">
+            <select id="r_company" class="company-select">
+              <option value="">— Select company —</option>
+            </select>
+            <button type="button" class="btn-add-company" data-target="r_company">+ Add</button>
+          </div>
+        </div>
+      </div>
+      <div class="form-row three">
+        <div class="form-group">
+          <label for="r_truck">Truck number</label>
+          <input type="text" id="r_truck" class="mono" placeholder="">
+        </div>
+        <div class="form-group">
+          <label for="r_owner">Truck owner</label>
+          <input type="text" id="r_owner" placeholder="">
+        </div>
+        <div class="form-group">
+          <label for="r_ownerPhone">Owner phone number</label>
+          <input type="tel" id="r_ownerPhone" placeholder="">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="r_date">Date</label>
+          <input type="date" id="r_date">
+        </div>
+        <div class="form-group">
+          <label for="r_notes">Notes <span class="opt">(optional)</span></label>
+          <input type="text" id="r_notes" placeholder="">
+        </div>
+      </div>
+    </div>
+
+    <!-- NEW TRUCK -->
+    <div class="fields-panel" id="fields-newtruck">
+      <div class="form-row three">
+        <div class="form-group">
+          <label for="nt_truck">Truck number</label>
+          <input type="text" id="nt_truck" class="mono" placeholder="">
+        </div>
+        <div class="form-group">
+          <label for="nt_vin">VIN</label>
+          <input type="text" id="nt_vin" class="mono" placeholder="">
+        </div>
+        <div class="form-group">
+          <label for="nt_state">State</label>
+          <input type="text" id="nt_state" placeholder="">
+        </div>
+      </div>
+      <div class="form-row three">
+        <div class="form-group">
+          <label for="nt_plate">Plate</label>
+          <input type="text" id="nt_plate" class="mono" placeholder="">
+        </div>
+        <div class="form-group">
+          <label for="nt_year">Year</label>
+          <input type="text" id="nt_year" placeholder="">
+        </div>
+        <div class="form-group">
+          <label for="nt_date">Came / added date</label>
+          <input type="date" id="nt_date">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="nt_notes">Notes <span class="opt">(optional)</span></label>
+          <input type="text" id="nt_notes" placeholder="">
+        </div>
+      </div>
+    </div>
+
+    <!-- SWITCHED TRUCK -->
+    <div class="fields-panel" id="fields-switchedtruck">
+      <div class="form-row three">
+        <div class="form-group">
+          <label for="st_truck">Truck number</label>
+          <input type="text" id="st_truck" class="mono" placeholder="">
+        </div>
+        <div class="form-group">
+          <label for="st_vin">VIN</label>
+          <input type="text" id="st_vin" class="mono" placeholder="">
+        </div>
+        <div class="form-group">
+          <label for="st_state">State</label>
+          <input type="text" id="st_state" placeholder="">
+        </div>
+      </div>
+      <div class="form-row three">
+        <div class="form-group">
+          <label for="st_plate">Plate</label>
+          <input type="text" id="st_plate" class="mono" placeholder="">
+        </div>
+        <div class="form-group">
+          <label for="st_year">Year</label>
+          <input type="text" id="st_year" placeholder="">
+        </div>
+        <div class="form-group">
+          <label for="st_date">Switched date</label>
+          <input type="date" id="st_date">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="st_notes">Notes <span class="opt">(optional)</span></label>
+          <input type="text" id="st_notes" placeholder="">
+        </div>
+      </div>
+    </div>
+
+    <!-- LEFT TRUCK -->
+    <div class="fields-panel" id="fields-lefttruck">
+      <div class="form-row three">
+        <div class="form-group">
+          <label for="lt_truck">Truck number</label>
+          <input type="text" id="lt_truck" class="mono" placeholder="">
+        </div>
+        <div class="form-group">
+          <label for="lt_vin">VIN</label>
+          <input type="text" id="lt_vin" class="mono" placeholder="">
+        </div>
+        <div class="form-group">
+          <label for="lt_state">State</label>
+          <input type="text" id="lt_state" placeholder="">
+        </div>
+      </div>
+      <div class="form-row three">
+        <div class="form-group">
+          <label for="lt_plate">Plate</label>
+          <input type="text" id="lt_plate" class="mono" placeholder="">
+        </div>
+        <div class="form-group">
+          <label for="lt_year">Year</label>
+          <input type="text" id="lt_year" placeholder="">
+        </div>
+        <div class="form-group">
+          <label for="lt_date">Left date</label>
+          <input type="date" id="lt_date">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="lt_notes">Notes <span class="opt">(optional)</span></label>
+          <input type="text" id="lt_notes" placeholder="">
+        </div>
+      </div>
+    </div>
+
+    <!-- RETURNED TRUCK -->
+    <div class="fields-panel" id="fields-returnedtruck">
+      <div class="form-row three">
+        <div class="form-group">
+          <label for="rt_truck">Truck number</label>
+          <input type="text" id="rt_truck" class="mono" placeholder="">
+        </div>
+        <div class="form-group">
+          <label for="rt_vin">VIN</label>
+          <input type="text" id="rt_vin" class="mono" placeholder="">
+        </div>
+        <div class="form-group">
+          <label for="rt_state">State</label>
+          <input type="text" id="rt_state" placeholder="">
+        </div>
+      </div>
+      <div class="form-row three">
+        <div class="form-group">
+          <label for="rt_plate">Plate</label>
+          <input type="text" id="rt_plate" class="mono" placeholder="">
+        </div>
+        <div class="form-group">
+          <label for="rt_year">Year</label>
+          <input type="text" id="rt_year" placeholder="">
+        </div>
+        <div class="form-group">
+          <label for="rt_date">Returned date</label>
+          <input type="date" id="rt_date">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="rt_notes">Notes <span class="opt">(optional)</span></label>
+          <input type="text" id="rt_notes" placeholder="">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn-submit" id="submitBtn">Save update</button>
+      <button class="btn-clear" id="clearBtn">Clear</button>
+    </div>
+    <div class="msg" id="submitMsg" style="margin-top:10px;"></div>
+  </div>
+
+  <div class="table-card">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Driver / Truck</th>
+          <th>Company / Details</th>
+          <th>Truck / VIN</th>
+          <th>Date</th>
+          <th>Logged</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+        <tr class="empty-row"><td colspan="7">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+  const STATUS_LABELS = {
+    left: 'Left Company',
+    joined: 'Joined Company',
+    switched: 'Switched Company',
+    returned: 'Returned',
+    newtruck: 'New Truck',
+    switchedtruck: 'Switched Truck',
+    lefttruck: 'Left Truck',
+    returnedtruck: 'Returned Truck'
+  };
+
+  const TRUCK_STATUSES = ['newtruck', 'switchedtruck', 'lefttruck', 'returnedtruck'];
+
+  let allEntries = [];
+  let companies = [];
+
+  const $ = (id) => document.getElementById(id);
+
+  function showMsg(el, text, kind){
+    el.textContent = text;
+    el.className = 'msg show ' + kind;
+    setTimeout(() => { el.className = 'msg'; }, 4000);
+  }
+
+  function escapeHtml(str){
+    const d = document.createElement('div');
+    d.textContent = str == null ? '' : str;
+    return d.innerHTML;
+  }
+
+  function timeAgo(ts){
+    const s = Math.floor((Date.now() - ts) / 1000);
+    if(s < 60) return 'just now';
+    const m = Math.floor(s/60); if(m < 60) return m + 'm ago';
+    const h = Math.floor(m/60); if(h < 24) return h + 'h ago';
+    const d = Math.floor(h/24); return d + 'd ago';
+  }
+
+  // ---------- Companies ----------
+  async function loadCompanies(){
+    try{
+      const res = await window.storage.get('companies-list', false);
+      companies = res && res.value ? JSON.parse(res.value) : [];
+    }catch(e){
+      companies = [];
+    }
+    companies.sort((a,b) => a.localeCompare(b));
+    refreshCompanySelects();
+    renderCompaniesPanel();
+  }
+
+  async function saveCompanies(){
+    try{
+      await window.storage.set('companies-list', JSON.stringify(companies), false);
+    }catch(e){
+      console.error('Could not save companies', e);
+    }
+  }
+
+  function refreshCompanySelects(){
+    document.querySelectorAll('.company-select').forEach(sel => {
+      const current = sel.value;
+      sel.innerHTML = '<option value="">— Select company —</option>';
+      companies.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c;
+        opt.textContent = c;
+        sel.appendChild(opt);
+      });
+      if(current && companies.includes(current)) sel.value = current;
+    });
+  }
+
+  function renderCompaniesPanel(){
+    const list = $('companiesList');
+    const empty = $('companiesEmpty');
+    if(companies.length === 0){
+      empty.style.display = 'block';
+      list.innerHTML = '';
+      return;
+    }
+    empty.style.display = 'none';
+    list.innerHTML = companies.map(c => `
+      <li>
+        <span>${escapeHtml(c)}</span>
+        <button class="del" data-name="${escapeHtml(c)}" title="Remove">&times;</button>
+      </li>
+    `).join('');
+
+    list.querySelectorAll('.del').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const name = btn.dataset.name;
+        companies = companies.filter(x => x !== name);
+        await saveCompanies();
+        refreshCompanySelects();
+        renderCompaniesPanel();
+      });
+    });
+  }
+
+  $('companiesToggle').addEventListener('click', () => {
+    $('companiesPanel').classList.toggle('open');
+  });
+
+  $('saveCompanyBtn').addEventListener('click', async () => {
+    const name = $('newCompanyInput').value.trim();
+    if(!name){
+      showMsg($('companiesMsg'), 'Enter a company name.', 'err');
+      return;
+    }
+    if(companies.some(c => c.toLowerCase() === name.toLowerCase())){
+      showMsg($('companiesMsg'), 'Company already exists.', 'err');
+      return;
+    }
+    companies.push(name);
+    companies.sort((a,b) => a.localeCompare(b));
+    await saveCompanies();
+    refreshCompanySelects();
+    renderCompaniesPanel();
+    $('newCompanyInput').value = '';
+    showMsg($('companiesMsg'), 'Company added.', 'ok');
+  });
+
+  document.querySelectorAll('.btn-add-company').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const name = prompt('New company name:');
+      if(!name || !name.trim()) return;
+      const trimmed = name.trim();
+      const existing = companies.find(c => c.toLowerCase() === trimmed.toLowerCase());
+      if(existing){
+        const target = $(btn.dataset.target);
+        if(target) target.value = existing;
+        return;
+      }
+      companies.push(trimmed);
+      companies.sort((a,b) => a.localeCompare(b));
+      await saveCompanies();
+      refreshCompanySelects();
+      renderCompaniesPanel();
+      const target = $(btn.dataset.target);
+      if(target) target.value = trimmed;
+    });
+  });
+
+  // ---------- Status fields ----------
+  function showFieldsFor(status){
+    document.querySelectorAll('.fields-panel').forEach(p => p.classList.remove('active'));
+    if(status){
+      const panel = $('fields-' + status);
+      if(panel) panel.classList.add('active');
+    }
+  }
+
+  $('statusSelect').addEventListener('change', () => {
+    showFieldsFor($('statusSelect').value);
+  });
+
+  const dateIds = ['j_date','s_date','l_date','r_date','nt_date','st_date','lt_date','rt_date'];
+  dateIds.forEach(id => {
+    const el = $(id);
+    if(el) el.valueAsDate = new Date();
+  });
+
+  function clearForm(){
+    $('statusSelect').value = '';
+    showFieldsFor('');
+    document.querySelectorAll('.form-card input[type=text], .form-card input[type=tel], .form-card input[type=date]').forEach(inp => {
+      if(inp.id === 'newCompanyInput') return;
+      inp.value = '';
+    });
+    document.querySelectorAll('.company-select').forEach(sel => sel.value = '');
+    dateIds.forEach(id => {
+      const el = $(id);
+      if(el) el.valueAsDate = new Date();
+    });
+  }
+
+  $('clearBtn').addEventListener('click', clearForm);
+
+  function collectEntry(){
+    const status = $('statusSelect').value;
+    if(!status) return { error: 'Select a status first.' };
+
+    if(TRUCK_STATUSES.includes(status)){
+      const prefix = status === 'newtruck' ? 'nt_'
+        : status === 'switchedtruck' ? 'st_'
+        : status === 'lefttruck' ? 'lt_'
+        : 'rt_';
+      const truckNumber = $(prefix + 'truck').value.trim();
+      const vin = $(prefix + 'vin').value.trim();
+      const state = $(prefix + 'state').value.trim();
+      const plate = $(prefix + 'plate').value.trim();
+      const year = $(prefix + 'year').value.trim();
+      const effectiveDate = $(prefix + 'date').value;
+      const notes = $(prefix + 'notes').value.trim();
+
+      if(!truckNumber && !vin && !plate) return { error: 'Enter at least a truck number, VIN, or plate.' };
+
+      return {
+        status, isTruck: true,
+        truckNumber, vin, state, plate, year, effectiveDate, notes,
+        driverName: '', phone: '', companyName: '',
+        truckOwner: '', ownerPhone: '', previousCompany: '', previousTruck: '',
+        codriverName: '', codriverPhone: ''
+      };
+    }
+
+    let driverName = '', phone = '', companyName = '', truckNumber = '';
+    let truckOwner = '', ownerPhone = '', previousCompany = '', previousTruck = '';
+    let codriverName = '', codriverPhone = '', effectiveDate = '', notes = '';
+
+    if(status === 'joined'){
+      driverName = $('j_driverName').value.trim();
+      phone = $('j_phone').value.trim();
+      companyName = $('j_company').value.trim();
+      truckNumber = $('j_truck').value.trim();
+      truckOwner = $('j_owner').value.trim();
+      ownerPhone = $('j_ownerPhone').value.trim();
+      effectiveDate = $('j_date').value;
+      notes = $('j_notes').value.trim();
+      if(!driverName) return { error: 'Enter a driver name.' };
+      if(!companyName) return { error: 'Select a company.' };
+    }
+    else if(status === 'switched'){
+      driverName = $('s_driverName').value.trim();
+      phone = $('s_phone').value.trim();
+      previousCompany = $('s_prevCompany').value.trim();
+      previousTruck = $('s_prevTruck').value.trim();
+      companyName = $('s_company').value.trim();
+      truckNumber = $('s_truck').value.trim();
+      truckOwner = $('s_owner').value.trim();
+      ownerPhone = $('s_ownerPhone').value.trim();
+      codriverName = $('s_codriver').value.trim();
+      codriverPhone = $('s_codriverPhone').value.trim();
+      effectiveDate = $('s_date').value;
+      notes = $('s_notes').value.trim();
+      if(!driverName) return { error: 'Enter a driver name.' };
+      if(!companyName) return { error: 'Select the new company.' };
+    }
+    else if(status === 'left'){
+      driverName = $('l_driverName').value.trim();
+      phone = $('l_phone').value.trim();
+      companyName = $('l_company').value.trim();
+      truckNumber = $('l_truck').value.trim();
+      effectiveDate = $('l_date').value;
+      notes = $('l_notes').value.trim();
+      if(!driverName) return { error: 'Enter a driver name.' };
+    }
+    else if(status === 'returned'){
+      driverName = $('r_driverName').value.trim();
+      phone = $('r_phone').value.trim();
+      companyName = $('r_company').value.trim();
+      truckNumber = $('r_truck').value.trim();
+      truckOwner = $('r_owner').value.trim();
+      ownerPhone = $('r_ownerPhone').value.trim();
+      effectiveDate = $('r_date').value;
+      notes = $('r_notes').value.trim();
+      if(!driverName) return { error: 'Enter a driver name.' };
+      if(!companyName) return { error: 'Select a company.' };
+    }
+
+    return {
+      status, isTruck: false,
+      driverName, phone, companyName, truckNumber,
+      truckOwner, ownerPhone, previousCompany, previousTruck,
+      codriverName, codriverPhone, effectiveDate, notes,
+      vin: '', state: '', plate: '', year: ''
+    };
+  }
+
+  async function loadEntries(){
+    try{
+      const list = await window.storage.get('entries-list', false);
+      const ids = list && list.value ? JSON.parse(list.value) : [];
+      const entries = [];
+      for(const id of ids){
+        try{
+          const r = await window.storage.get('entry:' + id, false);
+          if(r && r.value) entries.push(JSON.parse(r.value));
+        }catch(e){ /* skip */ }
+      }
+      entries.sort((a,b) => b.createdAt - a.createdAt);
+      allEntries = entries;
+    }catch(e){
+      allEntries = [];
+    }
+    renderCounts();
+    renderTable();
+  }
+
+  function renderCounts(){
+    const n = allEntries.length;
+    $('subCounts').textContent = `${n} update${n === 1 ? '' : 's'} logged`;
+  }
+
+  function getFiltered(){
+    const q = $('searchInput').value.trim().toLowerCase();
+    const statusFilter = $('filterSelect').value;
+    return allEntries.filter(e => {
+      if(statusFilter !== 'all' && e.status !== statusFilter) return false;
+      if(q){
+        const hay = [
+          e.driverName, e.truckNumber, e.companyName, e.phone,
+          e.truckOwner, e.vin, e.plate, e.state, e.year, e.previousTruck
+        ].filter(Boolean).join(' ').toLowerCase();
+        if(!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }
+
+  function buildSubLine(e){
+    if(e.isTruck || TRUCK_STATUSES.includes(e.status)){
+      const parts = [];
+      if(e.state) parts.push(e.state);
+      if(e.plate) parts.push(e.plate);
+      if(e.year) parts.push(e.year);
+      if(e.notes) parts.push(e.notes);
+      return parts.join(' · ');
+    }
+    const parts = [];
+    if(e.phone) parts.push(e.phone);
+    if(e.previousCompany) parts.push('from ' + e.previousCompany);
+    if(e.previousTruck) parts.push('previous truck: ' + e.previousTruck);
+    if(e.truckOwner) parts.push('owner: ' + e.truckOwner);
+    if(e.codriverName) parts.push('co-driver: ' + e.codriverName);
+    if(e.notes) parts.push(e.notes);
+    return parts.join(' · ');
+  }
+
+  function renderTable(){
+    const tbody = $('tableBody');
+    const rows = getFiltered();
+    if(rows.length === 0){
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="7">No updates match. Try clearing filters or add a new one.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.map((e, i) => {
+      const isTruck = e.isTruck || TRUCK_STATUSES.includes(e.status);
+      const mainName = isTruck
+        ? (e.truckNumber || e.vin || e.plate || 'Truck')
+        : (e.driverName || '—');
+      const companyOrDetails = isTruck
+        ? ([e.state, e.plate, e.year].filter(Boolean).join(' · ') || '—')
+        : (e.companyName || '—');
+      const truckOrVin = isTruck
+        ? (e.vin || e.truckNumber || '—')
+        : (e.truckNumber || '—');
+      const sub = buildSubLine(e);
+
+      return `
+      <tr>
+        <td class="idx">${i+1}</td>
+        <td class="driver-cell">
+          <div class="driver-line">
+            <span class="driver-name">${escapeHtml(mainName)}</span>
+            <span class="badge ${e.status}">${STATUS_LABELS[e.status] || e.status}</span>
+          </div>
+          ${sub ? `<div class="driver-sub">${escapeHtml(sub)}</div>` : ''}
+        </td>
+        <td class="company">${escapeHtml(companyOrDetails)}</td>
+        <td class="truck">${escapeHtml(truckOrVin)}</td>
+        <td class="date">${escapeHtml(e.effectiveDate || '—')}</td>
+        <td class="status-text">${timeAgo(e.createdAt)}</td>
+        <td><button class="del-btn" data-id="${e.id}" title="Delete">&times;</button></td>
+      </tr>`;
+    }).join('');
+
+    tbody.querySelectorAll('.del-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.dataset.id;
+        try{
+          await window.storage.delete('entry:' + id, false);
+          const list = await window.storage.get('entries-list', false);
+          const ids = list && list.value ? JSON.parse(list.value) : [];
+          const updated = ids.filter(x => x !== id);
+          await window.storage.set('entries-list', JSON.stringify(updated), false);
+          await loadEntries();
+        }catch(e){ console.error('Delete failed', e); }
+      });
+    });
+  }
+
+  $('searchInput').addEventListener('input', renderTable);
+  $('filterSelect').addEventListener('change', renderTable);
+
+  $('submitBtn').addEventListener('click', async () => {
+    const submitMsg = $('submitMsg');
+    const data = collectEntry();
+    if(data.error){
+      showMsg(submitMsg, data.error, 'err');
+      return;
+    }
+
+    const btn = $('submitBtn');
+    btn.disabled = true; btn.textContent = 'Saving...';
+
+    const entry = {
+      id: 'e' + Date.now() + Math.random().toString(36).slice(2,7),
+      ...data,
+      createdAt: Date.now(),
+      synced: false
+    };
+
+    try{
+      await window.storage.set('entry:' + entry.id, JSON.stringify(entry), false);
+      const list = await window.storage.get('entries-list', false).catch(() => null);
+      const ids = list && list.value ? JSON.parse(list.value) : [];
+      ids.push(entry.id);
+      await window.storage.set('entries-list', JSON.stringify(ids), false);
+      showMsg(submitMsg, 'Update saved.', 'ok');
+      clearForm();
+    }catch(e){
+      showMsg(submitMsg, 'Could not save: ' + e.message, 'err');
+    }
+
+    btn.disabled = false; btn.textContent = 'Save update';
+    await loadEntries();
+  });
+
+  loadCompanies();
+  loadEntries();
+</script>
+</body>
+</html>
