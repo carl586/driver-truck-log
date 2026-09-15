@@ -697,8 +697,8 @@
   // ---------- Companies ----------
   async function loadCompanies(){
     try{
-      const res = await window.storage.get('companies-list', false);
-      companies = res && res.value ? JSON.parse(res.value) : [];
+      const res = localStorage.getItem('companies-list');
+      companies = res ? JSON.parse(res) : [];
     }catch(e){
       companies = [];
     }
@@ -709,7 +709,7 @@
 
   async function saveCompanies(){
     try{
-      await window.storage.set('companies-list', JSON.stringify(companies), false);
+      localStorage.setItem('companies-list', JSON.stringify(companies));
     }catch(e){
       console.error('Could not save companies', e);
     }
@@ -928,13 +928,13 @@
 
   async function loadEntries(){
     try{
-      const list = await window.storage.get('entries-list', false);
-      const ids = list && list.value ? JSON.parse(list.value) : [];
+      const list = localStorage.getItem('entries-list');
+      const ids = list ? JSON.parse(list) : [];
       const entries = [];
       for(const id of ids){
         try{
-          const r = await window.storage.get('entry:' + id, false);
-          if(r && r.value) entries.push(JSON.parse(r.value));
+          const r = localStorage.getItem('entry:' + id);
+          if(r) entries.push(JSON.parse(r));
         }catch(e){ /* skip */ }
       }
       entries.sort((a,b) => b.createdAt - a.createdAt);
@@ -1028,11 +1028,11 @@
       btn.addEventListener('click', async () => {
         const id = btn.dataset.id;
         try{
-          await window.storage.delete('entry:' + id, false);
-          const list = await window.storage.get('entries-list', false);
-          const ids = list && list.value ? JSON.parse(list.value) : [];
+          localStorage.removeItem('entry:' + id);
+          const list = localStorage.getItem('entries-list');
+          const ids = list ? JSON.parse(list) : [];
           const updated = ids.filter(x => x !== id);
-          await window.storage.set('entries-list', JSON.stringify(updated), false);
+          localStorage.setItem('entries-list', JSON.stringify(updated));
           await loadEntries();
         }catch(e){ console.error('Delete failed', e); }
       });
@@ -1041,6 +1041,9 @@
 
   $('searchInput').addEventListener('input', renderTable);
   $('filterSelect').addEventListener('change', renderTable);
+
+  // Your Vercel API URL
+  const API_URL = 'https://driver-truck-prlp04dp1-carl586s-projects.vercel.app';
 
   $('submitBtn').addEventListener('click', async () => {
     const submitMsg = $('submitMsg');
@@ -1061,13 +1064,30 @@
     };
 
     try{
-      await window.storage.set('entry:' + entry.id, JSON.stringify(entry), false);
-      const list = await window.storage.get('entries-list', false).catch(() => null);
-      const ids = list && list.value ? JSON.parse(list.value) : [];
+      // 1. Save locally (for the table on this page)
+      localStorage.setItem('entry:' + entry.id, JSON.stringify(entry));
+      const list = localStorage.getItem('entries-list');
+      const ids = list ? JSON.parse(list) : [];
       ids.push(entry.id);
-      await window.storage.set('entries-list', JSON.stringify(ids), false);
-      showMsg(submitMsg, 'Update saved.', 'ok');
-      clearForm();
+      localStorage.setItem('entries-list', JSON.stringify(ids));
+
+      // 2. Send to Vercel API → Neon + Telegram
+      const resp = await fetch(API_URL + '/api/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(entry)
+      });
+
+      const result = await resp.json();
+
+      if(!resp.ok){
+        showMsg(submitMsg, 'Saved locally, but server error: ' + (result.error || resp.status), 'err');
+      } else {
+        entry.synced = true;
+        localStorage.setItem('entry:' + entry.id, JSON.stringify(entry));
+        showMsg(submitMsg, 'Saved and sent to Telegram.', 'ok');
+        clearForm();
+      }
     }catch(e){
       showMsg(submitMsg, 'Could not save: ' + e.message, 'err');
     }
