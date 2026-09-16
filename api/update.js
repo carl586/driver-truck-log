@@ -17,7 +17,6 @@ export default async function handler(req, res) {
 
     const sql = neon(process.env.DATABASE_URL);
 
-    // 1. Save to Neon first (this is what the user waits for)
     await sql`
       INSERT INTO updates (
         id, status, is_truck,
@@ -51,7 +50,6 @@ export default async function handler(req, res) {
       )
     `;
 
-    // 2. Send to Telegram in the background (user does not wait)
     waitUntil(
       fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
         method: 'POST',
@@ -66,7 +64,6 @@ export default async function handler(req, res) {
       }).catch(err => console.error('Telegram failed:', err))
     );
 
-    // 3. Answer the user immediately
     return res.status(200).json({ ok: true });
   } catch (err) {
     console.error(err);
@@ -74,41 +71,115 @@ export default async function handler(req, res) {
   }
 }
 
+/** Format ISO date (yyyy-mm-dd) as m/d/yyyy with no leading zeros */
+function formatDate(iso) {
+  if (!iso) return '';
+  const parts = String(iso).split('-');
+  if (parts.length !== 3) return iso;
+  const m = parseInt(parts[1], 10);
+  const d = parseInt(parts[2], 10);
+  const y = parts[0];
+  if (!m || !d || !y) return iso;
+  return `${m}/${d}/${y}`;
+}
+
+function line(label, value) {
+  if (value === null || value === undefined || String(value).trim() === '') return null;
+  return `<b>${label}:</b> ${String(value).trim()}`;
+}
+
 function buildTelegramMessage(e) {
-  const titles = {
-    joined: '#newdriver',
-    switched: '#switched',
-    left: '#left',
-    returned: '#returned',
-    newtruck: '#newtruck',
-    switchedtruck: '#switchedtruck',
-    lefttruck: '#lefttruck',
-    returnedtruck: '#returnedtruck'
-  };
+  const lines = [];
 
-  let lines = [`<b>${titles[e.status] || e.status}</b>`, ''];
-
-  if (e.isTruck || ['newtruck','switchedtruck','lefttruck','returnedtruck'].includes(e.status)) {
-    if (e.truckNumber) lines.push(`<b>truck</b>  ${e.truckNumber}`);
-    if (e.vin) lines.push(`<b>vin</b>  ${e.vin}`);
-    if (e.state) lines.push(`<b>state</b>  ${e.state}`);
-    if (e.plate) lines.push(`<b>plate</b>  ${e.plate}`);
-    if (e.year) lines.push(`<b>year</b>  ${e.year}`);
-    if (e.effectiveDate) lines.push(`<b>date</b>  ${e.effectiveDate}`);
-  } else {
-    if (e.driverName) lines.push(`<b>driver name</b>  ${e.driverName}`);
-    if (e.phone) lines.push(`<b>phone number</b>  ${e.phone}`);
-    if (e.companyName) lines.push(`<b>company</b>  ${e.companyName}`);
-    if (e.previousCompany) lines.push(`<b>previous company</b>  ${e.previousCompany}`);
-    if (e.previousTruck) lines.push(`<b>previous truck</b>  ${e.previousTruck}`);
-    if (e.truckNumber) lines.push(`<b>truck</b>  ${e.truckNumber}`);
-    if (e.truckOwner) lines.push(`<b>truck owner</b>  ${e.truckOwner}`);
-    if (e.ownerPhone) lines.push(`<b>owner phone</b>  ${e.ownerPhone}`);
-    if (e.codriverName) lines.push(`<b>co-driver</b>  ${e.codriverName}`);
-    if (e.codriverPhone) lines.push(`<b>co-driver phone</b>  ${e.codriverPhone}`);
-    if (e.effectiveDate) lines.push(`<b>date</b>  ${e.effectiveDate}`);
+  if (e.status === 'joined') {
+    lines.push('<b>#newdriver</b>', '');
+    lines.push(line('Company', e.companyName));
+    lines.push(line('Truck', e.truckNumber));
+    lines.push(line('Truck Owner', e.truckOwner));
+    lines.push(line('Driver Name', e.driverName));
+    lines.push(line('Phone number', e.phone));
+    lines.push(line('Hire date', formatDate(e.effectiveDate)));
+  }
+  else if (e.status === 'switched') {
+    lines.push('<b>#switchdriver</b>', '');
+    lines.push(line('Company', e.companyName));
+    // Truck: to (new) from (previous)
+    const truckParts = [];
+    if (e.truckNumber) truckParts.push(`to ${e.truckNumber}`);
+    if (e.previousTruck) truckParts.push(`from ${e.previousTruck}`);
+    if (truckParts.length) lines.push(`<b>Truck:</b> ${truckParts.join(' ')}`);
+    lines.push(line('Truck owner', e.truckOwner));
+    lines.push(line('Owner phone number', e.ownerPhone));
+    lines.push(line('Driver name', e.driverName));
+    lines.push(line('Phone number', e.phone));
+    lines.push(line('Codriver name', e.codriverName));
+    lines.push(line('Codriver ph', e.codriverPhone));
+    lines.push(line('Switch date', formatDate(e.effectiveDate)));
+  }
+  else if (e.status === 'left') {
+    lines.push('<b>#leftdriver</b>', '');
+    lines.push(line('Company', e.companyName));
+    lines.push(line('Truck', e.truckNumber));
+    lines.push(line('Truck owner', e.truckOwner));
+    lines.push(line('Driver name', e.driverName));
+    lines.push(line('Phone number', e.phone));
+    lines.push(line('Left date', formatDate(e.effectiveDate)));
+  }
+  else if (e.status === 'returned') {
+    lines.push('<b>#returndriver</b>', '');
+    lines.push(line('Company', e.companyName));
+    lines.push(line('Truck', e.truckNumber));
+    lines.push(line('Truck Owner', e.truckOwner));
+    lines.push(line('Driver Name', e.driverName));
+    lines.push(line('Phone number', e.phone));
+    lines.push(line('Return date', formatDate(e.effectiveDate)));
+  }
+  else if (e.status === 'newtruck') {
+    lines.push('<b>#newtruck</b>', '');
+    lines.push(line('Company', e.companyName));
+    lines.push(line('Truck', e.truckNumber));
+    lines.push(line('VIN', e.vin));
+    lines.push(line('State', e.state));
+    lines.push(line('Plate', e.plate));
+    lines.push(line('Year', e.year));
+    lines.push(line('Truck Owner', e.truckOwner));
+    lines.push(line('Owner phone', e.ownerPhone));
+    lines.push(line('Date', formatDate(e.effectiveDate)));
+  }
+  else if (e.status === 'switchedtruck') {
+    lines.push('<b>#switchtruck</b>', '');
+    lines.push(line('Company', e.companyName));
+    lines.push(line('Truck', e.truckNumber));
+    lines.push(line('Truck Owner', e.truckOwner));
+    lines.push(line('Owner phone', e.ownerPhone));
+    lines.push(line('Switch date', formatDate(e.effectiveDate)));
+  }
+  else if (e.status === 'lefttruck') {
+    lines.push('<b>#lefttruck</b>', '');
+    lines.push(line('Company', e.companyName));
+    lines.push(line('Truck', e.truckNumber));
+    lines.push(line('Truck Owner', e.truckOwner));
+    lines.push(line('Owner phone', e.ownerPhone));
+    lines.push(line('Left date', formatDate(e.effectiveDate)));
+  }
+  else if (e.status === 'returnedtruck') {
+    lines.push('<b>#returntruck</b>', '');
+    lines.push(line('Company', e.companyName));
+    lines.push(line('Truck', e.truckNumber));
+    lines.push(line('VIN', e.vin));
+    lines.push(line('Truck Owner', e.truckOwner));
+    lines.push(line('Owner phone', e.ownerPhone));
+    lines.push(line('Return date', formatDate(e.effectiveDate)));
+  }
+  else {
+    lines.push(`<b>#${e.status}</b>`, '');
+    lines.push(line('Driver', e.driverName));
+    lines.push(line('Company', e.companyName));
+    lines.push(line('Truck', e.truckNumber));
+    lines.push(line('Date', formatDate(e.effectiveDate)));
   }
 
-  if (e.notes) lines.push(`<b>notes</b>  ${e.notes}`);
-  return lines.join('\n');
+  if (e.notes) lines.push(line('Notes', e.notes));
+
+  return lines.filter(Boolean).join('\n');
 }
