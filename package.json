@@ -1,8 +1,9 @@
 {
   "name": "driver-truck-log",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "type": "module",
   "dependencies": {
-    "@neondatabase/serverless": "^0.10.0"
+    "@neondatabase/serverless": "^0.10.0",
+    "@vercel/functions": "^1.5.0"
   }
 }
