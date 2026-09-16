@@ -50,28 +50,40 @@ export default async function handler(req, res) {
       )
     `;
 
-    waitUntil(
-      fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: process.env.TELEGRAM_CHAT_ID,
-          text: buildTelegramMessage(data),
-          parse_mode: 'HTML'
-        })
-      }).then(r => r.json()).then(tg => {
-        if (!tg.ok) console.error('Telegram error:', tg);
-      }).catch(err => console.error('Telegram failed:', err))
-    );
-
-    return res.status(200).json({ ok: true });
+    // Respond immediately — Telegram runs in background
+    res.status(200).json({ ok: true });
+    waitUntil(sendTelegram(data));
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: err.message });
   }
 }
 
-/** Format ISO date (yyyy-mm-dd) as m/d/yyyy with no leading zeros */
+async function sendTelegram(data) {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  const chatId = process.env.TELEGRAM_CHAT_ID;
+  if (!token || !chatId) {
+    console.error('Telegram env vars missing');
+    return;
+  }
+  try {
+    const r = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: buildTelegramMessage(data),
+        parse_mode: 'HTML',
+      }),
+    });
+    const tg = await r.json();
+    if (!tg.ok) console.error('Telegram error:', tg);
+  } catch (err) {
+    console.error('Telegram failed:', err);
+  }
+}
+
+/** yyyy-mm-dd → m/d/yyyy (no leading zeros) */
 function formatDate(iso) {
   if (!iso) return '';
   const parts = String(iso).split('-');
@@ -99,11 +111,9 @@ function buildTelegramMessage(e) {
     lines.push(line('Driver Name', e.driverName));
     lines.push(line('Phone number', e.phone));
     lines.push(line('Hire date', formatDate(e.effectiveDate)));
-  }
-  else if (e.status === 'switched') {
+  } else if (e.status === 'switched') {
     lines.push('<b>#switchdriver</b>', '');
     lines.push(line('Company', e.companyName));
-    // Truck: to (new) from (previous)
     const truckParts = [];
     if (e.truckNumber) truckParts.push(`to ${e.truckNumber}`);
     if (e.previousTruck) truckParts.push(`from ${e.previousTruck}`);
@@ -115,8 +125,7 @@ function buildTelegramMessage(e) {
     lines.push(line('Codriver name', e.codriverName));
     lines.push(line('Codriver ph', e.codriverPhone));
     lines.push(line('Switch date', formatDate(e.effectiveDate)));
-  }
-  else if (e.status === 'left') {
+  } else if (e.status === 'left') {
     lines.push('<b>#leftdriver</b>', '');
     lines.push(line('Company', e.companyName));
     lines.push(line('Truck', e.truckNumber));
@@ -124,8 +133,7 @@ function buildTelegramMessage(e) {
     lines.push(line('Driver name', e.driverName));
     lines.push(line('Phone number', e.phone));
     lines.push(line('Left date', formatDate(e.effectiveDate)));
-  }
-  else if (e.status === 'returned') {
+  } else if (e.status === 'returned') {
     lines.push('<b>#returndriver</b>', '');
     lines.push(line('Company', e.companyName));
     lines.push(line('Truck', e.truckNumber));
@@ -133,8 +141,7 @@ function buildTelegramMessage(e) {
     lines.push(line('Driver Name', e.driverName));
     lines.push(line('Phone number', e.phone));
     lines.push(line('Return date', formatDate(e.effectiveDate)));
-  }
-  else if (e.status === 'newtruck') {
+  } else if (e.status === 'newtruck') {
     lines.push('<b>#newtruck</b>', '');
     lines.push(line('Company', e.companyName));
     lines.push(line('Truck', e.truckNumber));
@@ -145,24 +152,21 @@ function buildTelegramMessage(e) {
     lines.push(line('Truck Owner', e.truckOwner));
     lines.push(line('Owner phone', e.ownerPhone));
     lines.push(line('Date', formatDate(e.effectiveDate)));
-  }
-  else if (e.status === 'switchedtruck') {
+  } else if (e.status === 'switchedtruck') {
     lines.push('<b>#switchtruck</b>', '');
     lines.push(line('Company', e.companyName));
     lines.push(line('Truck', e.truckNumber));
     lines.push(line('Truck Owner', e.truckOwner));
     lines.push(line('Owner phone', e.ownerPhone));
     lines.push(line('Switch date', formatDate(e.effectiveDate)));
-  }
-  else if (e.status === 'lefttruck') {
+  } else if (e.status === 'lefttruck') {
     lines.push('<b>#lefttruck</b>', '');
     lines.push(line('Company', e.companyName));
     lines.push(line('Truck', e.truckNumber));
     lines.push(line('Truck Owner', e.truckOwner));
     lines.push(line('Owner phone', e.ownerPhone));
     lines.push(line('Left date', formatDate(e.effectiveDate)));
-  }
-  else if (e.status === 'returnedtruck') {
+  } else if (e.status === 'returnedtruck') {
     lines.push('<b>#returntruck</b>', '');
     lines.push(line('Company', e.companyName));
     lines.push(line('Truck', e.truckNumber));
@@ -170,8 +174,7 @@ function buildTelegramMessage(e) {
     lines.push(line('Truck Owner', e.truckOwner));
     lines.push(line('Owner phone', e.ownerPhone));
     lines.push(line('Return date', formatDate(e.effectiveDate)));
-  }
-  else {
+  } else {
     lines.push(`<b>#${e.status}</b>`, '');
     lines.push(line('Driver', e.driverName));
     lines.push(line('Company', e.companyName));
