@@ -307,7 +307,7 @@
       </div>
     </div>
 
-    <!-- SWITCHED: Company, Truck to/from, owner, owner phone, driver, phone, codriver opt, switch date required -->
+    <!-- SWITCHED: Company, Truck to/from, owner (optional), owner phone (optional), driver, phone, codriver opt, switch date (optional) -->
     <div class="fields-panel" id="fields-switched">
       <div class="form-row">
         <div class="form-group">
@@ -341,11 +341,11 @@
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label for="s_owner">Truck owner (new) <span class="req">*</span></label>
+          <label for="s_owner">Truck owner (new) <span class="opt">(optional)</span></label>
           <input type="text" id="s_owner" placeholder="">
         </div>
         <div class="form-group">
-          <label for="s_ownerPhone">Owner phone number <span class="req">*</span></label>
+          <label for="s_ownerPhone">Owner phone number <span class="opt">(optional)</span></label>
           <input type="tel" id="s_ownerPhone" placeholder="">
         </div>
       </div>
@@ -371,7 +371,7 @@
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label for="s_date">Switch date <span class="req">*</span></label>
+          <label for="s_date">Switch date <span class="opt">(optional)</span></label>
           <input type="date" id="s_date">
         </div>
         <div class="form-group">
@@ -903,11 +903,8 @@
       if(!companyName) return { error: 'Select a company.' };
       if(!truckNumber) return { error: 'Enter new truck number.' };
       if(!previousTruck) return { error: 'Enter previous truck number.' };
-      if(!truckOwner) return { error: 'Enter truck owner.' };
-      if(!ownerPhone) return { error: 'Enter owner phone number.' };
       if(!driverName) return { error: 'Enter driver name.' };
       if(!phone) return { error: 'Enter phone number.' };
-      if(!effectiveDate) return { error: 'Enter switch date.' };
       return { status, isTruck: false, ...empty, companyName, previousCompany, truckNumber, previousTruck, truckOwner, ownerPhone, driverName, phone, codriverName, codriverPhone, effectiveDate, notes };
     }
 
