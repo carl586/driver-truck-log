@@ -553,7 +553,25 @@
           <input type="text" id="st_truck" class="mono" placeholder="">
         </div>
       </div>
-      <div class="form-row">
+      <div class="form-row three">
+        <div class="form-group">
+          <label for="st_vin">VIN <span class="opt">(optional)</span></label>
+          <input type="text" id="st_vin" class="mono" placeholder="">
+        </div>
+        <div class="form-group">
+          <label for="st_state">State <span class="opt">(optional)</span></label>
+          <input type="text" id="st_state" placeholder="">
+        </div>
+        <div class="form-group">
+          <label for="st_plate">Plate <span class="opt">(optional)</span></label>
+          <input type="text" id="st_plate" class="mono" placeholder="">
+        </div>
+      </div>
+      <div class="form-row three">
+        <div class="form-group">
+          <label for="st_year">Year <span class="opt">(optional)</span></label>
+          <input type="text" id="st_year" placeholder="">
+        </div>
         <div class="form-group">
           <label for="st_owner">Truck Owner <span class="req">*</span></label>
           <input type="text" id="st_owner" placeholder="">
@@ -592,7 +610,25 @@
           <input type="text" id="lt_truck" class="mono" placeholder="">
         </div>
       </div>
-      <div class="form-row">
+      <div class="form-row three">
+        <div class="form-group">
+          <label for="lt_vin">VIN <span class="opt">(optional)</span></label>
+          <input type="text" id="lt_vin" class="mono" placeholder="">
+        </div>
+        <div class="form-group">
+          <label for="lt_state">State <span class="opt">(optional)</span></label>
+          <input type="text" id="lt_state" placeholder="">
+        </div>
+        <div class="form-group">
+          <label for="lt_plate">Plate <span class="opt">(optional)</span></label>
+          <input type="text" id="lt_plate" class="mono" placeholder="">
+        </div>
+      </div>
+      <div class="form-row three">
+        <div class="form-group">
+          <label for="lt_year">Year <span class="opt">(optional)</span></label>
+          <input type="text" id="lt_year" placeholder="">
+        </div>
         <div class="form-group">
           <label for="lt_owner">Truck Owner <span class="req">*</span></label>
           <input type="text" id="lt_owner" placeholder="">
@@ -631,27 +667,39 @@
           <input type="text" id="rt_truck" class="mono" placeholder="">
         </div>
       </div>
-      <div class="form-row">
+      <div class="form-row three">
         <div class="form-group">
           <label for="rt_vin">VIN <span class="opt">(optional)</span></label>
           <input type="text" id="rt_vin" class="mono" placeholder="">
         </div>
         <div class="form-group">
+          <label for="rt_state">State <span class="opt">(optional)</span></label>
+          <input type="text" id="rt_state" placeholder="">
+        </div>
+        <div class="form-group">
+          <label for="rt_plate">Plate <span class="opt">(optional)</span></label>
+          <input type="text" id="rt_plate" class="mono" placeholder="">
+        </div>
+      </div>
+      <div class="form-row three">
+        <div class="form-group">
+          <label for="rt_year">Year <span class="opt">(optional)</span></label>
+          <input type="text" id="rt_year" placeholder="">
+        </div>
+        <div class="form-group">
           <label for="rt_owner">Truck Owner <span class="req">*</span></label>
           <input type="text" id="rt_owner" placeholder="">
         </div>
-      </div>
-      <div class="form-row">
         <div class="form-group">
           <label for="rt_ownerPhone">Owner phone <span class="req">*</span></label>
           <input type="tel" id="rt_ownerPhone" placeholder="">
         </div>
+      </div>
+      <div class="form-row">
         <div class="form-group">
           <label for="rt_date">Return date <span class="req">*</span></label>
           <input type="date" id="rt_date">
         </div>
-      </div>
-      <div class="form-row">
         <div class="form-group">
           <label for="rt_notes">Notes <span class="opt">(optional)</span></label>
           <input type="text" id="rt_notes" placeholder="">
@@ -966,6 +1014,10 @@
     if(status === 'switchedtruck'){
       const companyName = $('st_company').value.trim();
       const truckNumber = $('st_truck').value.trim();
+      const vin = $('st_vin').value.trim();
+      const state = $('st_state').value.trim();
+      const plate = $('st_plate').value.trim();
+      const year = $('st_year').value.trim();
       const truckOwner = $('st_owner').value.trim();
       const ownerPhone = $('st_ownerPhone').value.trim();
       const effectiveDate = $('st_date').value;
@@ -974,12 +1026,16 @@
       if(!truckNumber) return { error: 'Enter truck number.' };
       if(!truckOwner) return { error: 'Enter truck owner.' };
       if(!ownerPhone) return { error: 'Enter owner phone.' };
-      return { status, isTruck: true, ...empty, companyName, truckNumber, truckOwner, ownerPhone, effectiveDate, notes };
+      return { status, isTruck: true, ...empty, companyName, truckNumber, vin, state, plate, year, truckOwner, ownerPhone, effectiveDate, notes };
     }
 
     if(status === 'lefttruck'){
       const companyName = $('lt_company').value.trim();
       const truckNumber = $('lt_truck').value.trim();
+      const vin = $('lt_vin').value.trim();
+      const state = $('lt_state').value.trim();
+      const plate = $('lt_plate').value.trim();
+      const year = $('lt_year').value.trim();
       const truckOwner = $('lt_owner').value.trim();
       const ownerPhone = $('lt_ownerPhone').value.trim();
       const effectiveDate = $('lt_date').value;
@@ -989,13 +1045,16 @@
       if(!truckOwner) return { error: 'Enter truck owner.' };
       if(!ownerPhone) return { error: 'Enter owner phone.' };
       if(!effectiveDate) return { error: 'Enter left date.' };
-      return { status, isTruck: true, ...empty, companyName, truckNumber, truckOwner, ownerPhone, effectiveDate, notes };
+      return { status, isTruck: true, ...empty, companyName, truckNumber, vin, state, plate, year, truckOwner, ownerPhone, effectiveDate, notes };
     }
 
     if(status === 'returnedtruck'){
       const companyName = $('rt_company').value.trim();
       const truckNumber = $('rt_truck').value.trim();
       const vin = $('rt_vin').value.trim();
+      const state = $('rt_state').value.trim();
+      const plate = $('rt_plate').value.trim();
+      const year = $('rt_year').value.trim();
       const truckOwner = $('rt_owner').value.trim();
       const ownerPhone = $('rt_ownerPhone').value.trim();
       const effectiveDate = $('rt_date').value;
@@ -1005,7 +1064,7 @@
       if(!truckOwner) return { error: 'Enter truck owner.' };
       if(!ownerPhone) return { error: 'Enter owner phone.' };
       if(!effectiveDate) return { error: 'Enter return date.' };
-      return { status, isTruck: true, ...empty, companyName, truckNumber, vin, truckOwner, ownerPhone, effectiveDate, notes };
+      return { status, isTruck: true, ...empty, companyName, truckNumber, vin, state, plate, year, truckOwner, ownerPhone, effectiveDate, notes };
     }
 
     return { error: 'Unknown status.' };
