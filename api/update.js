@@ -156,6 +156,10 @@ function buildTelegramMessage(e) {
     lines.push('<b>#switchtruck</b>', '');
     lines.push(line('Company', e.companyName));
     lines.push(line('Truck', e.truckNumber));
+    lines.push(line('VIN', e.vin));
+    lines.push(line('State', e.state));
+    lines.push(line('Plate', e.plate));
+    lines.push(line('Year', e.year));
     lines.push(line('Truck Owner', e.truckOwner));
     lines.push(line('Owner phone', e.ownerPhone));
     lines.push(line('Switch date', formatDate(e.effectiveDate)));
@@ -163,6 +167,10 @@ function buildTelegramMessage(e) {
     lines.push('<b>#lefttruck</b>', '');
     lines.push(line('Company', e.companyName));
     lines.push(line('Truck', e.truckNumber));
+    lines.push(line('VIN', e.vin));
+    lines.push(line('State', e.state));
+    lines.push(line('Plate', e.plate));
+    lines.push(line('Year', e.year));
     lines.push(line('Truck Owner', e.truckOwner));
     lines.push(line('Owner phone', e.ownerPhone));
     lines.push(line('Left date', formatDate(e.effectiveDate)));
